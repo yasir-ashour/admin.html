@@ -1,828 +1,1516 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة إدارة الكتالوج - مركز عاشور</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-body { font-family: 'Tajawal', sans-serif; background: #0b0f19; color: #f8fafc; }
-.gold-gradient-text {
-  background: linear-gradient(135deg, #fce08f 0%, #d4af37 50%, #997415 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-.toast { animation: slideUp 0.3s ease forwards; }
-@keyframes slideUp { from { transform: translateY(80px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-input, select, textarea { font-family: inherit; }
-.flavor-tag { display: inline-flex; align-items: center; gap: 6px; }
-</style>
-</head>
-<body class="min-h-screen">
-
-<!-- شاشة تسجيل الدخول -->
-<div id="loginScreen" class="fixed inset-0 z-50 bg-[#0b0f19] flex items-center justify-center p-6">
-  <div class="bg-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
-    <div class="w-20 h-20 rounded-full bg-amber-500/10 border-2 border-amber-500/40 flex items-center justify-center mx-auto mb-5">
-      <i class="fas fa-lock text-3xl text-amber-400"></i>
-    </div>
-    <h1 class="text-2xl font-black gold-gradient-text mb-2">لوحة إدارة الكتالوج</h1>
-    <p class="text-slate-400 text-sm mb-6">أدخل كلمة المرور للوصول إلى لوحة التحكم</p>
-    <input type="password" id="loginPassword" placeholder="كلمة المرور"
-      class="w-full bg-slate-950 text-white p-3.5 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-center text-lg mb-4"
-      onkeydown="if(event.key==='Enter') tryLogin()">
-    <button onclick="tryLogin()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl transition">
-      <i class="fas fa-sign-in-alt mr-2"></i> دخول
-    </button>
-    <p id="loginError" class="hidden text-rose-400 text-sm mt-3 font-bold">كلمة المرور غير صحيحة</p>
-    <p class="text-slate-600 text-xs mt-6">الافتراضية: <span class="text-amber-400 font-mono">ashour2026</span> — يمكنك تغييرها من الإعدادات</p>
-  </div>
-</div>
-
-<!-- الواجهة الرئيسية (مخفية حتى تسجيل الدخول) -->
-<div id="adminApp" class="hidden">
-
-<!-- الهيدر -->
-<header class="sticky top-0 z-30 bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-800 shadow-md">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-    <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-full bg-amber-500 flex items-center justify-center text-slate-950 font-black text-xl">
-        <i class="fas fa-sliders-h"></i>
-      </div>
-      <div>
-        <h1 class="text-lg sm:text-xl font-black gold-gradient-text">لوحة إدارة الكتالوج</h1>
-        <p class="text-xs text-slate-400">مركز عاشور للتجارة</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-2 flex-wrap">
-      <span id="dirtyBadge" class="hidden bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xs px-3 py-1.5 rounded-full font-bold">
-        <i class="fas fa-circle text-[6px]"></i> تغييرات غير محفوظة
-      </span>
-      <button onclick="saveAll()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2">
-        <i class="fas fa-save"></i> حفظ
-      </button>
-      <a href="index.html" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2">
-        <i class="fas fa-external-link-alt"></i> عرض الموقع
-      </a>
-    </div>
-  </div>
-</header>
-
-<!-- التبويبات -->
-<div class="max-w-7xl mx-auto px-4 pt-6">
-  <div class="flex gap-2 mb-6 flex-wrap">
-    <button data-tab="products" class="tab-btn active bg-amber-500 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm transition">
-      <i class="fas fa-boxes"></i> المنتجات
-    </button>
-    <button data-tab="settings" class="tab-btn bg-slate-800 text-slate-300 font-bold px-5 py-2.5 rounded-xl text-sm border border-slate-700 transition">
-      <i class="fas fa-cog"></i> الإعدادات
-    </button>
-    <button data-tab="backup" class="tab-btn bg-slate-800 text-slate-300 font-bold px-5 py-2.5 rounded-xl text-sm border border-slate-700 transition">
-      <i class="fas fa-database"></i> النسخ الاحتياطي
-    </button>
-  </div>
-</div>
-
-<!-- ============= تبويب المنتجات ============= -->
-<div id="tab-products" class="tab-content max-w-7xl mx-auto px-4 pb-16">
-  
-  <!-- شريط الأدوات -->
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6 flex items-center gap-3 flex-wrap">
-    <div class="relative flex-grow min-w-[200px]">
-      <input type="text" id="adminSearch" placeholder="ابحث عن منتج..." oninput="renderProductList()"
-        class="w-full bg-slate-950 text-white placeholder-slate-500 pr-10 pl-3 py-2.5 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-      <i class="fas fa-search absolute right-3 top-3.5 text-slate-500"></i>
-    </div>
-    <select id="adminFilterCat" onchange="renderProductList()"
-      class="bg-slate-950 text-white py-2.5 px-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-      <option value="">كل الفئات</option>
-    </select>
-    <select id="adminFilterStatus" onchange="renderProductList()"
-      class="bg-slate-950 text-white py-2.5 px-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-      <option value="">كل الحالات</option>
-      <option value="available">متوفر</option>
-      <option value="lowStock">كمية محدودة</option>
-      <option value="unavailable">غير متوفر</option>
-    </select>
-    <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
-      <i class="fas fa-plus"></i> منتج جديد
-    </button>
-  </div>
-
-  <!-- إحصاءات سريعة -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-      <p class="text-slate-400 text-xs mb-1">إجمالي المنتجات</p>
-      <p id="statTotal" class="text-2xl font-black text-white">0</p>
-    </div>
-    <div class="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4">
-      <p class="text-slate-400 text-xs mb-1">متوفرة</p>
-      <p id="statAvailable" class="text-2xl font-black text-emerald-400">0</p>
-    </div>
-    <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-4">
-      <p class="text-slate-400 text-xs mb-1">كمية محدودة</p>
-      <p id="statLow" class="text-2xl font-black text-amber-400">0</p>
-    </div>
-    <div class="bg-slate-900 border border-rose-500/30 rounded-2xl p-4">
-      <p class="text-slate-400 text-xs mb-1">غير متوفرة</p>
-      <p id="statUnavailable" class="text-2xl font-black text-rose-400">0</p>
-    </div>
-  </div>
-
-  <!-- قائمة المنتجات -->
-  <div id="productList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-  <div id="emptyState" class="hidden text-center py-16 text-slate-500">
-    <i class="fas fa-inbox text-6xl mb-4 text-amber-500/30"></i>
-    <p class="text-lg">لا توجد منتجات تطابق البحث</p>
-  </div>
-</div>
-
-<!-- ============= تبويب الإعدادات ============= -->
-<div id="tab-settings" class="tab-content hidden max-w-3xl mx-auto px-4 pb-16">
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-    <h2 class="text-xl font-black text-white border-b border-slate-800 pb-3 flex items-center gap-2">
-      <i class="fas fa-store text-amber-400"></i> إعدادات المتجر
-    </h2>
-
-    <div>
-      <label class="block text-slate-300 font-bold mb-1.5 text-sm">اسم المتجر</label>
-      <input type="text" id="setStoreName" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-    </div>
-
-    <div>
-      <label class="block text-slate-300 font-bold mb-1.5 text-sm">رابط الشعار (Logo URL)</label>
-      <input type="text" id="setLogoUrl" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm font-mono text-xs">
-      <img id="logoPreview" class="mt-3 w-20 h-20 rounded-full object-cover border-2 border-amber-500/40" onerror="this.style.display='none'">
-    </div>
-
-    <div class="border-t border-slate-800 pt-5">
-      <h3 class="text-base font-black text-white mb-3 flex items-center gap-2">
-        <i class="fab fa-whatsapp text-emerald-400"></i> أرقام الواتساب
-      </h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-slate-300 font-bold mb-1.5 text-sm">رقم استقبال الطلبات</label>
-          <input type="text" id="setOrderWa" placeholder="9639xxxxxxxx" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm font-mono">
-          <p class="text-slate-500 text-xs mt-1">بصيغة دولية بدون + وبدون مسافات</p>
-        </div>
-        <div>
-          <label class="block text-slate-300 font-bold mb-1.5 text-sm">رقم الاستفسار</label>
-          <input type="text" id="setInquiryWa" placeholder="9639xxxxxxxx" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm font-mono">
-        </div>
-      </div>
-    </div>
-
-    <div class="border-t border-slate-800 pt-5">
-      <label class="block text-slate-300 font-bold mb-1.5 text-sm">عنوان المتجر</label>
-      <input type="text" id="setAddress" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-    </div>
-
-    <div>
-      <label class="block text-slate-300 font-bold mb-1.5 text-sm">رابط موقع المتجر على الخرائط</label>
-      <input type="text" id="setMapUrl" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm font-mono text-xs">
-    </div>
-
-    <div class="border-t border-slate-800 pt-5">
-      <label class="block text-slate-300 font-bold mb-1.5 text-sm">كلمة مرور اللوحة</label>
-      <input type="text" id="setPassword" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm font-mono">
-      <p class="text-amber-400/80 text-xs mt-1"><i class="fas fa-exclamation-triangle"></i> احتفظ بها في مكان آمن، لن تتمكن من الدخول بدونها.</p>
-    </div>
-  </div>
-</div>
-
-<!-- ============= تبويب النسخ الاحتياطي ============= -->
-<div id="tab-backup" class="tab-content hidden max-w-3xl mx-auto px-4 pb-16 space-y-5">
-  
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-    <h2 class="text-xl font-black text-white mb-3 flex items-center gap-2">
-      <i class="fas fa-file-export text-emerald-400"></i> تصدير البيانات
-    </h2>
-    <p class="text-slate-400 text-sm mb-4">حمّل ملف <code class="bg-slate-950 px-2 py-0.5 rounded text-amber-400">catalog-data.json</code> وارفعه في مستودع GitHub بجانب <code class="bg-slate-950 px-2 py-0.5 rounded text-amber-400">index.html</code>.</p>
-    <button onclick="exportData()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition flex items-center gap-2">
-      <i class="fas fa-download"></i> تنزيل ملف JSON
-    </button>
-  </div>
-
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-    <h2 class="text-xl font-black text-white mb-3 flex items-center gap-2">
-      <i class="fas fa-file-import text-amber-400"></i> استيراد البيانات
-    </h2>
-    <p class="text-slate-400 text-sm mb-4">استورد ملف <code class="bg-slate-950 px-2 py-0.5 rounded text-amber-400">catalog-data.json</code> لاستعادة نسخة سابقة أو لنقل البيانات من جهاز آخر.</p>
-    <input type="file" id="importFile" accept=".json,application/json" class="hidden" onchange="importData(event)">
-    <button onclick="document.getElementById('importFile').click()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-3 rounded-xl text-sm transition flex items-center gap-2">
-      <i class="fas fa-upload"></i> اختيار ملف للاستيراد
-    </button>
-    <div class="mt-4 p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-      <i class="fas fa-exclamation-triangle mr-1"></i>
-      تحذير: سيتم استبدال جميع البيانات الحالية بالبيانات المستوردة.
-    </div>
-  </div>
-
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-    <h2 class="text-xl font-black text-white mb-3 flex items-center gap-2">
-      <i class="fas fa-clipboard text-sky-400"></i> نسخ / لصق JSON
-    </h2>
-    <textarea id="jsonTextarea" rows="10" placeholder='الصق محتوى JSON هنا...' class="w-full bg-slate-950 text-amber-300 p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-xs font-mono mb-3"></textarea>
-    <div class="flex gap-2 flex-wrap">
-      <button onclick="copyJsonToTextarea()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-2.5 rounded-xl text-sm transition">
-        <i class="fas fa-copy"></i> تحميل البيانات الحالية في الصندوق
-      </button>
-      <button onclick="applyJsonFromTextarea()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition">
-        <i class="fas fa-check"></i> تطبيق المحتوى الملصق
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- نافذة تعديل/إضافة منتج -->
-<div id="productModal" class="hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-sm overflow-y-auto p-4">
-  <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full mx-auto my-8 shadow-2xl">
-    
-    <div class="flex items-center justify-between p-5 border-b border-slate-800">
-      <h2 id="modalTitle" class="text-xl font-black gold-gradient-text">تعديل منتج</h2>
-      <button onclick="closeProductModal()" class="w-9 h-9 rounded-full bg-slate-800 hover:bg-rose-600 text-white flex items-center justify-center transition">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-
-    <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-      
-      <input type="hidden" id="fPid">
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="md:col-span-2">
-          <label class="block text-slate-300 font-bold mb-1.5 text-sm">اسم المنتج <span class="text-rose-500">*</span></label>
-          <input type="text" id="fName" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-        </div>
-
-        <div>
-          <label class="block text-slate-300 font-bold mb-1.5 text-sm">الفئة <span class="text-rose-500">*</span></label>
-          <input type="text" id="fCategory" list="categoriesList" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-          <datalist id="categoriesList"></datalist>
-        </div>
-
-        <div>
-          <label class="block text-slate-300 font-bold mb-1.5 text-sm">السعر</label>
-          <input type="text" id="fPrice" placeholder="التواصل مع المبيعات" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-slate-300 font-bold mb-1.5 text-sm">رابط الصورة <span class="text-rose-500">*</span></label>
-        <input type="text" id="fImage" oninput="previewImage()" class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-xs font-mono">
-        <div class="mt-3 flex items-start gap-4">
-          <div class="w-32 h-28 rounded-xl border-2 border-slate-700 bg-slate-950 overflow-hidden flex items-center justify-center flex-shrink-0">
-            <img id="fImagePreview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\'fas fa-image text-slate-600 text-3xl\'></i>'">
-          </div>
-          <div class="flex flex-col gap-2">
-            <p class="text-slate-400 text-xs">تصحيح اتجاه الصورة:</p>
-            <div class="flex gap-2 flex-wrap">
-              <button type="button" onclick="setRotation('')" class="rot-btn bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700" data-rot="">0°</button>
-              <button type="button" onclick="setRotation('rot-90')" class="rot-btn bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700" data-rot="rot-90">90°</button>
-              <button type="button" onclick="setRotation('rot-180')" class="rot-btn bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700" data-rot="rot-180">180°</button>
-              <button type="button" onclick="setRotation('rot-270')" class="rot-btn bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700" data-rot="rot-270">270°</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-slate-300 font-bold mb-1.5 text-sm">الوصف</label>
-        <textarea id="fDescription" rows="3" placeholder="وصف مختصر للمنتج..." class="w-full bg-slate-950 text-white p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm"></textarea>
-      </div>
-
-      <div>
-        <label class="block text-slate-300 font-bold mb-1.5 text-sm">النكهات (اختياري)</label>
-        <div id="flavorsContainer" class="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 bg-slate-950 rounded-xl border border-slate-700"></div>
-        <div class="flex gap-2">
-          <input type="text" id="newFlavorInput" placeholder="أضف نكهة جديدة..." onkeydown="if(event.key==='Enter'){event.preventDefault();addFlavor();}"
-            class="flex-grow bg-slate-950 text-white p-2.5 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-500 text-sm">
-          <button type="button" onclick="addFlavor()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold px-4 py-2.5 rounded-xl text-sm transition border border-slate-700">
-            <i class="fas fa-plus"></i> إضافة
-          </button>
-        </div>
-        <p class="text-slate-500 text-xs mt-1">اترك القائمة فارغة إذا كان المنتج بدون نكهات (سيُعامل كـ "عادي").</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-800">
-        <label class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-700 cursor-pointer">
-          <input type="checkbox" id="fAvailable" class="w-5 h-5 accent-emerald-500">
-          <span class="text-slate-200 font-bold text-sm"><i class="fas fa-check-circle text-emerald-400 mr-1"></i> متوفر للبيع</span>
-        </label>
-        <label class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-700 cursor-pointer">
-          <input type="checkbox" id="fLowStock" class="w-5 h-5 accent-amber-500">
-          <span class="text-slate-200 font-bold text-sm"><i class="fas fa-exclamation-circle text-amber-400 mr-1"></i> كمية محدودة</span>
-        </label>
-      </div>
-    </div>
-
-    <div class="flex justify-between items-center p-5 border-t border-slate-800 gap-3 flex-wrap">
-      <button type="button" onclick="deleteProductFromModal()" class="bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-500/40 font-bold px-4 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
-        <i class="fas fa-trash-alt"></i> حذف المنتج
-      </button>
-      <div class="flex gap-2">
-        <button onclick="closeProductModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-5 py-2.5 rounded-xl text-sm transition">إلغاء</button>
-        <button onclick="saveProduct()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
-          <i class="fas fa-save"></i> حفظ المنتج
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Toast -->
-<div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 border-2 border-amber-500 text-white px-5 py-3 rounded-2xl shadow-2xl toast">
-  <p id="toastMsg" class="text-sm font-bold"></p>
-</div>
-
-</div><!-- /adminApp -->
-
-<script>
-/* ============================ الحالة العامة ============================ */
-const STORAGE_KEY = 'ashour_catalog_data_v1';
-let catalogData = { products: [], settings: {}, categories: [] };
-let editingFlavors = [];
-let currentRotation = '';
-
-/* ============================ أدوات ============================ */
-function escapeHtml(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function showToast(msg, type = 'success') {
-  const toast = document.getElementById('toast');
-  const toastMsg = document.getElementById('toastMsg');
-  toastMsg.innerText = msg;
-  toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl toast border-2 ' +
-    (type === 'error' ? 'bg-rose-950 border-rose-500' : 'bg-slate-900 border-amber-500');
-  toast.classList.remove('hidden');
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => toast.classList.add('hidden'), 2500);
-}
-
-/* ============================ تحميل البيانات ============================ */
-async function loadInitialData() {
-  // 1. حاول من localStorage
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      catalogData = JSON.parse(stored);
-      return;
-    } catch (e) { console.warn('فشل تحميل localStorage:', e); }
-  }
-
-  // 2. حاول من ملف catalog-data.json
-  try {
-    const res = await fetch('catalog-data.json', { cache: 'no-store' });
-    if (res.ok) {
-      catalogData = await res.json();
-      return;
-    }
-  } catch (e) { /* الملف غير موجود */ }
-
-  // 3. بيانات افتراضية
-  catalogData = {
-    products: [],
-    settings: {
-      storeName: 'مركز عاشور للتجارة',
-      logoUrl: 'https://cdn.phototourl.com/free/2026-09-21-ca2f4731-bf40-43ca-b6c3-c3b47ad9603d.jpg',
-      orderWhatsApp: '963982572810',
-      inquiryWhatsApp: '963959248901',
-      address: 'دمشق أوتوستراد درعا الدولي - قبل التاون سنتر مقابل جامع عائشة',
-      mapUrl: 'https://maps.app.goo.gl/djUWNAnBhh3pPwfn6',
-      password: 'ashour2026'
+{
+  "products": [
+    {
+      "name": "اربيكا طبيعي صغير",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/prfRDSvB/1791902542596.jpg",
+      "description": "النكهات : مكسيكي - فلفل حار - جبنة - ملح وخل - باربكيو - مالح - كتشب",
+      "flavors": ["مكسيكي", "فلفل حار", "جبنة", "ملح وخل", "باربكيو", "مالح", "كتشب"]
     },
-    categories: ['بسكويت', 'شيبس', 'سكاكر وعلكة', 'عصائر ومشروبات', 'قهوة']
-  };
-}
-
-function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(catalogData));
-  document.getElementById('dirtyBadge').classList.remove('hidden');
-}
-
-function clearDirty() {
-  document.getElementById('dirtyBadge').classList.add('hidden');
-}
-
-/* ============================ تسجيل الدخول ============================ */
-function tryLogin() {
-  const pwd = document.getElementById('loginPassword').value;
-  const expected = catalogData.settings.password || 'ashour2026';
-  if (pwd === expected) {
-    sessionStorage.setItem('ashour_admin_ok', '1');
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('adminApp').classList.remove('hidden');
-    initAdmin();
-  } else {
-    document.getElementById('loginError').classList.remove('hidden');
-    setTimeout(() => document.getElementById('loginError').classList.add('hidden'), 2500);
-  }
-}
-
-/* ============================ التهيئة ============================ */
-function initAdmin() {
-  renderCategories();
-  renderSettingsInputs();
-  renderProductList();
-  renderStats();
-}
-
-/* ============================ التبويبات ============================ */
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const tab = btn.dataset.tab;
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      b.className = b.dataset.tab === tab
-        ? 'tab-btn active bg-amber-500 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm transition'
-        : 'tab-btn bg-slate-800 text-slate-300 font-bold px-5 py-2.5 rounded-xl text-sm border border-slate-700 transition';
-    });
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-    document.getElementById('tab-' + tab).classList.remove('hidden');
-  });
-});
-
-/* ============================ الفئات ============================ */
-function renderCategories() {
-  const set = new Set(catalogData.categories || []);
-  catalogData.products.forEach(p => p.category && set.add(p.category));
-  catalogData.categories = Array.from(set).sort();
-
-  const datalist = document.getElementById('categoriesList');
-  datalist.innerHTML = catalogData.categories.map(c => `<option value="${escapeHtml(c)}">`).join('');
-
-  const filterSelect = document.getElementById('adminFilterCat');
-  const current = filterSelect.value;
-  filterSelect.innerHTML = '<option value="">كل الفئات</option>' +
-    catalogData.categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-  filterSelect.value = current;
-}
-
-/* ============================ الإعدادات ============================ */
-function renderSettingsInputs() {
-  const s = catalogData.settings;
-  document.getElementById('setStoreName').value = s.storeName || '';
-  document.getElementById('setLogoUrl').value = s.logoUrl || '';
-  document.getElementById('setOrderWa').value = s.orderWhatsApp || '';
-  document.getElementById('setInquiryWa').value = s.inquiryWhatsApp || '';
-  document.getElementById('setAddress').value = s.address || '';
-  document.getElementById('setMapUrl').value = s.mapUrl || '';
-  document.getElementById('setPassword').value = s.password || '';
-
-  const logo = document.getElementById('logoPreview');
-  if (s.logoUrl) { logo.src = s.logoUrl; logo.style.display = 'block'; }
-  else logo.style.display = 'none';
-}
-
-// ربط الإعدادات بالتغيير الفوري
-['setStoreName','setLogoUrl','setOrderWa','setInquiryWa','setAddress','setMapUrl','setPassword'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    const map = {
-      setStoreName: 'storeName', setLogoUrl: 'logoUrl',
-      setOrderWa: 'orderWhatsApp', setInquiryWa: 'inquiryWhatsApp',
-      setAddress: 'address', setMapUrl: 'mapUrl', setPassword: 'password'
-    };
-    catalogData.settings[map[id]] = document.getElementById(id).value;
-    if (id === 'setLogoUrl') {
-      const logo = document.getElementById('logoPreview');
-      logo.src = document.getElementById(id).value;
-      logo.style.display = 'block';
+    {
+      "name": "اربيكا طبيعي جامبو",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/jkfPR6Zy/1791902579906.jpg",
+      "description": "النكهات : مكسيكي - فلفل حار - جبنة - ملح وخل - باربكيو - مالح - كتشب",
+      "flavors": ["مكسيكي", "فلفل حار", "جبنة", "ملح وخل", "باربكيو", "مالح", "كتشب"]
+    },
+    {
+      "name": "تورتيز رقائق كبير 100",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/HftHvMKn/1791902790035.jpg",
+      "description": "النكهات : لبنة والاعشاب - فليفلة حلوة - جبنة مشكلة ميكس - حار وليمون",
+      "flavors": ["لبنة والاعشاب", "فليفلة حلوة", "جبنة مشكلة ميكس", "حار وليمون"]
+    },
+    {
+      "name": "تورتيز رقائق",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/tprwmybw/1791902859760.jpg",
+      "description": "النكهات : لبنة والاعشاب - هالبينو تشيز - فليفلة حلوة",
+      "flavors": ["لبنة والاعشاب", "هالبينو تشيز", "فليفلة حلوة"]
+    },
+    {
+      "name": "سبوكي كبير 100",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/sp9QkV36/1791903052882.jpg",
+      "description": "النكهات : باربكيو",
+      "flavors": ["باربكيو"]
+    },
+    {
+      "name": "عصير كرتون 20",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/spmsT9X5/IMG-20261013-182914.jpg",
+      "description": "النكهات : منجا - برتقال - فريز - اناناس",
+      "flavors": ["منجا", "برتقال", "فريز", "اناناس"]
+    },
+    {
+      "name": "اوكتبوس كرنشي",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/gLZD7snf/1791904125082.jpg",
+      "description": "النكهات : خردل وعسل - ذرة حلوة - حار وليمون - خضار - جبنة",
+      "flavors": ["خردل وعسل", "ذرة حلوة", "حار وليمون", "خضار", "جبنة"]
+    },
+    {
+      "name": "قهوه سادة موكا 100g",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/nqtNMzLC/1791904254279.jpg",
+      "description": "قهوة سادة موكا 100 غرام"
+    },
+    {
+      "name": "قهوه كلاسيك مع الهال 100g",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/XrQ3VXwS/1791904056043.jpg",
+      "description": "قهوة كلاسيك مع الهال 100 غرام"
+    },
+    {
+      "name": "قهوة إكسترا هال 200",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/fVD0CKR7/1791903879220.jpg",
+      "description": "قهوة إكسترا هال 200 غرام"
+    },
+    {
+      "name": "قهوة كلاسيك مع هال 200g",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/tMN8CQV8/1791903944171.jpg",
+      "description": "قهوة كلاسيك مع هال 200 غرام"
+    },
+    {
+      "name": "توب فريش ساور",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/WpqwK1ck/1791903820791.jpg",
+      "description": "سكاكر توب فريش ساور الحامضة والمنعشة"
+    },
+    {
+      "name": "كب كيك",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/nsycQxjt/1791903716293.jpg",
+      "description": "كب كيك طري ولذيذ"
+    },
+    {
+      "name": "حنجور شوكالا",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/0ytgJQfs/1791903474769.jpg",
+      "description": "حنجور شوكالا الغني واللذيذ"
+    },
+    {
+      "name": "بسكويت ماتيلدا دارك",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/kstdRSFM/1791903353015.jpg",
+      "description": "بسكويت ماتيلدا دارك الفاخر"
+    },
+    {
+      "name": "بسكويت كريمة",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/3YzGPXG1/1791903548491.jpg",
+      "description": "النكهات : حليب - فريز - موز - برتقال",
+      "flavors": ["حليب", "فريز", "موز", "برتقال"]
+    },
+    {
+      "name": "سلسيتو مالح",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/v4B35jZL/1791901832099.jpg",
+      "description": "النكهات : مالح - حبة بركه - كتشب - حار - زعتر",
+      "flavors": ["مالح", "حبة بركه", "كتشب", "حار", "زعتر"]
+    },
+    {
+      "name": "بسكوت مي تو",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/5hY32Jrn/1791903416991.jpg",
+      "description": "بسكويت مي تو المقرمش بحشوة الكريمة"
+    },
+    {
+      "name": "بسكويت تاندا",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/yFqzzqSX/1791903201147.jpg",
+      "description": "بسكويت تاندا الفاخر"
+    },
+    {
+      "name": "قهوه اكسترا هال 100g",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/1fhpsGzS/1791904344535.jpg",
+      "description": "قهوة إكسترا هال 100 غرام"
+    },
+    {
+      "name": "جنتي شوكو كرنش",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/d4k8rL2Y/1791299905439.jpg",
+      "description": "بسكويت جنتي شوكو كرنش اللذيذ والمقرمش"
+    },
+    {
+      "name": "جنتي هم هم",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/dzWDKvZ/1791299825266.jpg",
+      "description": "بسكويت جنتي هم هم الهش والمحبوب"
+    },
+    {
+      "name": "سلسيتو بسكويت مالح مع الزعتر",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/ycYcHL8Z/1791302658954.jpg",
+      "description": "بسكويت سلسيتو المالح مع طعم الزعتر الشهي"
+    },
+    {
+      "name": "ديجيستيف امية كلاس",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/CsWKrjZX/1791299650004.jpg",
+      "description": "بسكويت ديجيستيف أمية كلاس الممتع والمغذي"
+    },
+    {
+      "name": "زنجيرز كيك",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/1YRnQD3B/1791299482629.jpg",
+      "description": "كيك زنجيرز الطري اللذيذ"
+    },
+    {
+      "name": "بسكوت اورينو 4 حبات",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/8ndm1FYy/1791299473026.jpg",
+      "description": "بسكويت اورينو المميز عبوة 4 حبات"
+    },
+    {
+      "name": "رولانا 1 حبه",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/TBYPhsq0/1791302413005.jpg",
+      "description": "النكهات : حليب - شوكالا",
+      "flavors": ["حليب", "شوكالا"]
+    },
+    {
+      "name": "شوكالا فيوري",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/NnTrRRSQ/1791299626960.jpg",
+      "description": "شوكولاتة فيوري الفاخرة والغنية"
+    },
+    {
+      "name": "دارنيتو إكس فورتين جامبو",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/5d0bc848-135d-45c8-8f09-4a47b5f318cc.jpg",
+      "description": "النكهات : جبنة و مميزة",
+      "flavors": ["جبنة", "مميزة"]
+    },
+    {
+      "name": "دارنيتو إكس فورتين",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/5d0bc848-135d-45c8-8f09-4a47b5f318cc.jpg",
+      "description": "النكهات : جبنة و مميزة",
+      "flavors": ["جبنة", "مميزة"]
+    },
+    {
+      "name": "دارنيتو فور",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/6b96b4ee-72b2-40c6-a0f4-101b47d073bf.jpg",
+      "description": "النكهات : باربكيو",
+      "flavors": ["باربكيو"]
+    },
+    {
+      "name": "دارنيتو طبيعي صغير",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/d6f994c0-4dcb-4e7a-8dc2-5bd2428ac27e.jpg",
+      "description": "النكهات : خل و باربكيو و كتشب و ملح وجبنه وحار",
+      "flavors": ["خل", "باربكيو", "كتشب", "ملح", "جبنه", "حار"]
+    },
+    {
+      "name": "دارنيتو طبيعي جامبو",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/39429b71-d1a0-4e96-9ab7-e7b0682757ce.jpg",
+      "description": "النكهات : خل و باربكيو و كتشب و ملح وجبنه وحار",
+      "flavors": ["خل", "باربكيو", "كتشب", "ملح", "جبنه", "حار"]
+    },
+    {
+      "name": "دارنيتو توركس",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/1abadd2a-862c-49ca-bc5e-5f12230f7248.jpg",
+      "description": "النكهات : جبنة -و البصل -واليمون -والحار وحلو",
+      "flavors": ["جبنة", "البصل", "اليمون", "الحار وحلو"]
+    },
+    {
+      "name": "دارنيتو بوشار جامبو",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/a512e410-371f-442f-9919-2f5d1702b1f1.jpg",
+      "description": "النكهات : جبنة وليمون",
+      "flavors": ["جبنة", "ليمون"]
+    },
+    {
+      "name": "شيبتوز صغير",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/343b0fb2-a7e9-4a2d-84b9-342185ab3852.jpg",
+      "description": "النكهات : كتشب وخل وباربكيو وحار وجبنه وذرة حلوة",
+      "flavors": ["كتشب", "خل", "باربكيو", "حار", "جبنه", "ذرة حلوة"]
+    },
+    {
+      "name": "شيبتوز كبير 3",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/b6520bdb-74bc-4d5a-b66e-7a124cb3415c.jpg",
+      "description": "النكهات : كتشب -وذرة حلوة -وجبنة- وخل- وحار وحلو -وحار",
+      "flavors": ["كتشب", "ذرة حلوة", "جبنة", "خل", "حار وحلو", "حار"]
+    },
+    {
+      "name": "برنس بوب كورن بوشار",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/f3eab4b1-f7d8-46c3-92db-2745845bf938.jpg",
+      "description": "النكهات : ذرة حلوة - حار وحلو - جبنة",
+      "flavors": ["ذرة حلوة", "حار وحلو", "جبنة"]
+    },
+    {
+      "name": "غولدن تاتش صغير 1",
+      "category": "شيبس",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/343b0fb2-a7e9-4a2d-84b9-342185ab3852.jpg",
+      "description": "النكهات : كتشب وخل وبيتزا",
+      "flavors": ["كتشب", "خل", "بيتزا"]
+    },
+{
+  "name": "شيبسو طبيعي 1",
+  "category": "شيبس",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/ac96aa6d-729a-4a79-85ec-708e6a4411da.jpg",
+  "description": "النكهات : خل وملح - حار - ملح",
+  "flavors": ["خل وملح", "حار", "ملح"]
+},
+{
+  "name": "كرسبيانا رقائق",
+  "category": "شيبس",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/1428edb8-5ae7-49b7-a799-90c5aa25ebc8.jpg",
+  "description": "النكهات : حار وحلو - خضار - خل - جبنة",
+  "flavors": ["حار وحلو", "خضار", "خل", "جبنة"]
+},
+{
+  "name": "رقائق شير إت",
+  "category": "شيبس",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/e11ee754-c75d-42a5-a130-8a0b4baf0b30.jpg",
+  "description": "النكهات : خضار - جبنة - حار وحلو - كتشب - بيتزا",
+  "flavors": ["خضار", "جبنة", "حار وحلو", "كتشب", "بيتزا"]
+},
+{
+  "name": "شيبس لاند 1 كغ",
+  "category": "شيبس",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.ibb.co/JgHjMKt/17903702848272298161631129192310.jpg",
+  "description": "1 كغ - النكهات ذرة وحلو ـ خل ـ حار ـ كتشب",
+  "flavors": ["ذرة وحلو", "خل", "حار", "كتشب"]
+},
+{
+  "name": "لب بذر دوار الشمس",
+  "category": "شيبس",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "lowStock": true,
+  "image": "https://i.ibb.co/HDf6Y2JD/IMG-20260926-184721.jpg",
+  "description": "بذور دوار الشمس المحمصة والمملحة بعناية",
+  "flavors": ["خل", "حار", "باربكيو", "ملح", "جبنة"]
+},
+{
+  "name": "سيما بسكوت ساده 10",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/61e95e88-a71e-481a-bf7d-35de2ae63837.jpg",
+  "description": "بسكويت سيما سادة مقرمش وفاخر"
+},
+{
+  "name": "سيما بسكوت ساده 30",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/23bb1eac-1716-4f2c-abcb-d3767dfd79ce.jpg",
+  "description": "بسكويت سيما سادة عائلي مميز"
+},
+{
+  "name": "بسكوت جوفريك",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/d86767f3-ff88-43d4-a651-77c148a27376.jpg",
+  "description": "بسكويت جوفريك المقرمش اللذيذ"
+},
+{
+  "name": "بسكوت دوتي اورجينال",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/55190367-4e95-4961-851e-6120c3e79fbe.jpg",
+  "description": "النكهات : شوكالا دارك - شوكالا بالحليب",
+  "flavors": ["شوكالا دارك", "شوكالا بالحليب"]
+},
+{
+  "name": "توب كورفيت",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/90cd111b-1524-49db-95e7-b900bce309aa.jpg",
+  "description": "ويفر توب كورفيت الفاخر"
+},
+{
+  "name": "بسكويت ون تكة",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/80c07491-b593-4e6c-9291-775202827105.jpg",
+  "description": "بسكويت ون تكة المميّز"
+},
+{
+  "name": "بسكوت جنتي ميلكو",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/0ddfe5be-b7b7-45e5-ac9b-35ddd245a127.jpg",
+  "description": "بسكويت جنتي ميلكو الغني بحشوة الحليب اللذيذة والمقرمشة"
+},
+{
+  "name": "بسكوت جنتي شينكي",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/b1bad1c8-ed34-40b3-b4d2-3bbbe55a1a67.jpg",
+  "description": "بسكويت شينكي المقرمش مع طعم فريد ومميز"
+},
+{
+  "name": "بسكوت جنتي كراميلو",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/c5007541-df2f-4272-bf1a-b805fb0e4dd3.jpg",
+  "description": "بسكويت جنتي الغني بطعم الكراميل الشهي"
+},
+{
+  "name": "بسكوت جنتي صباح عجوة",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/0db07e26-8916-4fc0-bd23-353e65049bac.jpg",
+  "description": "بسكويت جنتي صباح المحشو بالعجوة الطبيعية المغذية"
+},
+{
+  "name": "بسكوت جنتي موندو بريميوم",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/3a6c2e9c-aec4-4ab2-83c1-dadf45ba6f89.jpg",
+  "description": "بسكويت موندو بريميوم الفاخر بالطعم الغني"
+},
+{
+  "name": "بسكوت واوو كريمز بنكهة الفريز",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/79537fec-cb1a-4ed6-833f-d73dbedd086c.jpg",
+  "description": "بسكويت واوو كريمز المحشو بكريمة الفريز اللذيذة"
+},
+{
+  "name": "بسكوت واوو كريمز بنكهة الشوكالا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/fc34fa82-bb67-4b7e-956b-b26ff80ee89f.jpg",
+  "description": "بسكويت واوو كريمز الفاخر بحشوة الشوكولا الغنية"
+},
+{
+  "name": "بسكوت واوو كريمز بنكهة الحليب",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/c291b8b0-558e-4d64-b82a-5d03b9f8ee61.jpg",
+  "description": "بسكويت واوو كريمز المقرمش بكريمة الحليب الناعمة"
+},
+{
+  "name": "بسكوت واوو كريمز بنكهة البرتقال",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/4e8be666-0446-402e-9519-d908815032b4.jpg",
+  "description": "بسكويت واوو كريمز المنعش بنكهة البرتقال"
+},
+{
+  "name": "بسكوت واوو كريمز بنكهة الجوز هند",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/effc22e9-ff16-4fa4-92b1-ef3398141409.jpg",
+  "description": "بسكويت واوو كريمز بحشوة جوز الهند الغنية"
+},
+{
+  "name": "بسكوت واوو كريمز بنكهة الفانيلا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/1f8bdc92-5680-4fe5-9581-d7a34274dece.jpg",
+  "description": "بسكويت واوو كريمز الفاخر بنكهة الفانيلا الناعمة"
+},
+{
+  "name": "سوبر اردو شوكالا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/779afa82-3895-404d-ad2b-3637c0a31f9d.jpg",
+  "description": "بسكويت سوبر اردو المغطى بشوكولاتة الحليب الغنية"
+},
+{
+  "name": "سوبر اردو حليب",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/779afa82-3895-404d-ad2b-3637c0a31f9d.jpg",
+  "description": "بسكويت سوبر اردو الفاخر والمقرمش بنكهة الحليب"
+},
+{
+  "name": "كيكتي الكاكاو بالحليب",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/04bd5cf4-ce75-4861-be7d-7c46dcd8b422.jpg",
+  "description": "كيك كيكتي الهش بالكاكاو والمليء بكريمة الحليب"
+},
+{
+  "name": "كيكتي فانيلا بالشوكالا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/7e6494b9-e2a4-48f6-a771-7ee0f8f44104.jpg",
+  "description": "كيك كيكتي الفانيلا الطري المحشو بالشوكالا"
+},
+{
+  "name": "كيكتي بالفريز",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/b192d6f7-9ec4-4860-bb40-0f26a3171d74.jpg",
+  "description": "كيك كيكتي الشهي بمربى وكريمة الفريز"
+},
+{
+  "name": "كيكتي كاكاو بالشوكالا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/0859f52d-a93a-4985-98f9-0cbc37eff590.jpg",
+  "description": "كيك كيكتي الكاكاو المحشو بالشوكولاتة الغنية"
+},
+{
+  "name": "كيكتي فانيلا بالحليب",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/f80c1fc8-081a-499a-b386-4f3d11e57fcc.jpg",
+  "description": "كيك كيكتي الفانيلا مع كريمة الحليب الناعمة"
+},
+{
+  "name": "بسكوت اردو حليب",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://iili.io/naG7v2V.jpg",
+  "description": "بسكويت اردو الفاخر والمقرمش بنكهة الحليب الغنية"
+},
+{
+  "name": "سلفيتو بسكويت الكاكاو",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/HLcS6Xsy/17903738068056955385858921003623.jpg",
+  "description": "بسكويت فاخر بنكهة الكاكاو الغنية والشهية"
+},
+{
+  "name": "برنسيس مكسرات ٤",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/PZ69Rrbx/17903740632248857959363517203127-1.png",
+  "description": "حليب وشوكالا وكرميلو"
+},
+{
+  "name": "سلفيتو لايت اوجينال 2",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/dsPxpYHq/17903736794202118061813671613481.jpg",
+  "description": "شوكالا وحليب"
+},
+{
+  "name": "بسكوت البشير مي تو",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/8DHXshfb/17903736200207503086660731698315.jpg",
+  "description": "بسكويت مي تو المقرمش بحشوة الكريمة"
+},
+{
+  "name": "بسكوت رالاس",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/MDy7N7dC/FB-IMG-1790022842708.jpg",
+  "description": "النكهات : جوز هند - الكابتشينو - البندق - الفستق - الكراميلو",
+  "flavors": ["جوز هند", "الكابتشينو", "البندق", "الفستق", "الكراميلو"]
+},
+{
+  "name": "رالاس لوس بجوز الهند",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/8qxxZXWw.jpg",
+  "description": "بسكويت رالاس لوس الفاخر المغطى بجوز الهند المقرمش"
+},
+{
+  "name": "رالاس نوغاتي بنكهة الفستق",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/14MJqgCFi.jpg",
+  "description": "نوغاتي هش ومحشو بطعم الفستق الغني"
+},
+{
+  "name": "اورلي الفاخر",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.phototourl.com/member/2026-09-21-4b977406-e9cb-4213-8d0e-298bdaf164d6.jpg",
+  "description": "حليب وشوكالا"
+},
+{
+  "name": "تشيلو new plus",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/0XyvaYfO.jpg",
+  "description": "شوكالا وحليب"
+},
+{
+  "name": "دريم لاند 8 قطع",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/Q6kPsr62.jpg",
+  "description": "8 قطع"
+},
+{
+  "name": "دريم لاند 4 قطع",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/L8rAVpMz.jpg",
+  "description": "4 قطع محشوة بالفانيلا والشوكولا"
+},
+{
+  "name": "رولانا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/h1sHXFFy/Screenshot-2026-09-25-13-14-43-445-com-miui-gallery.jpg",
+  "description": "النكهات : حليب وشوكالا",
+  "flavors": ["حليب", "شوكالا"]
+},
+{
+  "name": "بونو سوبر سندويش",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/VWTLKYqn/Screenshot-2026-09-25-13-14-45-281-com-miui-gallery.jpg",
+  "description": "النكهات : فانيلا - شوكالا - فريز",
+  "flavors": ["فانيلا", "شوكالا", "فريز"]
+},
+{
+  "name": "بونو كيك",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/DP1qkS1v/Screenshot-2026-09-25-13-16-05-265-com-miui-gallery.jpg",
+  "description": "النكهات : كاكاو بالحليب - كاكاو بالشوكالا",
+  "flavors": ["كاكاو بالحليب", "كاكاو بالشوكالا"]
+},
+{
+  "name": "بونو رول",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/HfwBVnRK/Screenshot-2026-09-25-13-16-00-510-com-miui-gallery.jpg",
+  "description": "رول كيك بونو مميز ومحشو بالكريمة"
+},
+{
+  "name": "بونو ستار",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/ymNh4ykW/Screenshot-2026-09-25-13-14-46-861-com-miui-gallery.jpg",
+  "description": "بسكويت كيك بونو ستار طري ومغطي بالشوكولا"
+},
+{
+  "name": "كاندي بونو",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/8YvI8Mem.jpg",
+  "description": "كاندي وبسكويت بونو اللذيذ للأطفال"
+},
+{
+  "name": "ماكس تايم",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/DyMcLFS/17903712582651060331576293546049.jpg",
+  "description": "حليب - شوكالا"
+},
+{
+  "name": "بونو فرويت",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/4RwS0XsV/Screenshot-2026-09-25-13-15-30-438-com-miui-gallery.jpg",
+  "description": "النكهات فريز - مشمش - شوكالا"
+},
+{
+  "name": "بونو شوكو ستار",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/VWvGf0x0/Screenshot-2026-09-25-13-14-57-426-com-miui-gallery.jpg",
+  "description": "النكهات : حليب - فريز - اللوتس - شوكالا",
+  "flavors": ["حليب", "فريز", "اللوتس", "شوكالا"]
+},
+{
+  "name": "فيريتيكس اكسترا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.ibb.co/FP0tJvb/Screenshot-2026-09-25-13-14-54-406-com-miui-gallery.jpg",
+  "description": "النكهات حليب وشوكالا"
+},
+{
+  "name": "فيريتيكس ويفر",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/MxZD29G6/1790371805850941167294567130987.jpg",
+  "description": "النكهات : الشوكالا - دارك شوكالا - حليب",
+  "flavors": ["الشوكالا", "دارك شوكالا", "حليب"]
+},
+{
+  "name": "جيلي كوب كارز",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/ZwDfFoLT.jpg",
+  "description": "أكواب جيلي كاندي ممتعة للأطفال"
+},
+{
+  "name": "بسكوت ب ب حليب",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/fVNbbn1R/8750838381737369895.jpg",
+  "description": "النكهات : فريز - شوكالا - حليب",
+  "flavors": ["فريز", "شوكالا", "حليب"]
+},
+{
+  "name": "بسكوت كرات دوتي",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/1cPBkdNd.jpg",
+  "description": "كرات البسكويت المقرمشة بالنكهات الغنية"
+},
+{
+  "name": "فيرونا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/1YNV05Gq/17904429282789014769229668770185.png",
+  "description": "النكهات : حليب - شوكالا",
+  "flavors": ["حليب", "شوكالا"]
+},
+{
+  "name": "اولغاكيك",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/jZMtkKp6/17904425677595787193787746379974.jpg",
+  "description": "النكهات شوكالا ـ حليب"
+},
+{
+  "name": "بريك ستا BREAKSTA",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/93swPjnW/17904424529327407959265093845926.jpg",
+  "description": "أصابع شوكولاتة ويفر بريك ستا المقرمشة"
+},
+{
+  "name": "هابي بريك HAPPY BREAK",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/twzYcr17/17904423362355578928225400528793.jpg",
+  "description": "ويفر هابي بريك بالكريمة الغنية"
+},
+{
+  "name": "BREAK بريك",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/mryBB5LP/17904423723973625622582965508116.jpg",
+  "description": "شوكولاتة ويفر بريك الأصيلة الشهيرة"
+},
+{
+  "name": "BREAK RizzO بريك ريززو",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "lowStock": true,
+  "image": "https://i.ibb.co/N6m5qSHL/17904424143824756185479364185135.jpg",
+  "description": "ويفر بريك رينزو الغني بطعم الشوكولاتة"
+},
+{
+  "name": "بريك تايم BREAK TAME",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/sp4m0Q8b/17905929216896339156630970980871.jpg",
+  "description": "سناك ويفر بريك تايم خفيف ومقرمش"
+},
+{
+  "name": "بسكوت دوتي طبقتين",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/XNps9Bll.jpg",
+  "description": "طبقتين مميزتين من بسكويت دوتي المحشو بالكريمة"
+},
+{
+  "name": "Cookmealy كرات شوكالا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/16ztQ2jcr.jpg",
+  "description": "النكهات : حليب - شوكالا",
+  "flavors": ["حليب", "شوكالا"]
+},
+{
+  "name": "سميري دريم",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/CsWfN2Vz.jpg",
+  "description": "بسكويت سميري دريم الفاخر المحشو"
+},
+{
+  "name": "باك باك شوكالا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/8LNtVsj5.jpg",
+  "description": "شوكالا - شوكالا داكنه"
+},
+{
+  "name": "شوكالا عمار الواح",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/4g9gwYqS/Screenshot-2026-09-25-13-15-40-410-com-miui-gallery.jpg",
+  "description": "النكهات : حليب - دارك - شوكالا",
+  "flavors": ["حليب", "دارك", "شوكالا"]
+},
+{
+  "name": "كاندي بار",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "lowStock": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/1h7VUDYCn.jpg",
+  "description": "أصابع كاندي بار الشوكولاتة المغذية"
+},
+{
+  "name": "سنوكا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/MDRxZfSx/17904412156244285410235850770404.jpg",
+  "description": "سنوكا دارك 6 قطع فاخرة"
+},
+{
+  "name": "3 ميني سويس رول",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://i.ibb.co/hxV0RJNc/17905913926648324840449697070687.jpg",
+  "description": "النكهات : شوكالا - توت - فريز",
+  "flavors": ["شوكالا", "توت", "فريز"]
+},
+{
+  "name": "موفيندو كيك",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": false,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/C2LntUpB.jpg",
+  "description": "كيك موفيندو الطري الرائع للوجبات الخفيفة"
+},
+{
+  "name": "دونيستا",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/GQ4CSd2T/1790372259410554768854533607412.jpg",
+  "description": "النكهات : نهدي - احمر - ابيض",
+  "flavors": ["نهدي", "احمر", "ابيض"]
+},
+{
+  "name": "قمح منفوش",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/zTdwsNSs/Screenshot-2026-09-25-13-15-38-975-com-miui-gallery.jpg",
+  "description": "نايو ون قمح منفوش"
+},
+{
+  "name": "الأرض السعيده (بيض)",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://cdn.imagetourls.com/uploads/tyImg/18ALkvyF5.jpg",
+  "description": "بيض شوكولاتة الأرض السعيدة مع ألعاب ومفاجآت"
+},
+{
+  "name": "اصابع كراكس مالح",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/39jk4Nnx/Screenshot-2026-09-25-13-15-33-139-com-miui-gallery.jpg",
+  "description": "أصابع بسكويت مالح كراكس الشهية"
+},
+{
+  "name": "بيتي فور جادو",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/xKCrVC5S/IMG-20260922-111134.jpg",
+  "description": "بنكهة الشوكالا والبيتي فور الفاخر"
+},
+{
+  "name": "ماكس كيك",
+  "category": "بسكويت",
+  "price": "التواصل مع المبيعات",
+  "available": true,
+  "image": "https://i.ibb.co/LhBdX5Fg/17903725334783146645917184836359.jpg",
+  "rotateClass": "rot-270",
+  "description": "النكهات : حليب - وشوكالا",
+  "flavors": ["حليب", "شوكالا"]
+}    ,
+    {
+      "name": "كراكيب شوكالا",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://i.ibb.co/HLNN1CCL/IMG-20260926-164644.jpg",
+      "description": "كرات كراكيب مقرمشة ومغطاة بشوكولاتة غنية"
+    },
+    {
+      "name": "سلفيتو شاي",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/55CIY6ul.jpg",
+      "description": "بسكويت شاي سلفيتو المفضل مع الشاي والقهوة"
+    },
+    {
+      "name": "سلفيتو جوز هند",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/UIBCL61n.jpg",
+      "rotateClass": "rot-90",
+      "description": "بسكويت سلفيتو الهش برائحة وطعم جوز الهند"
+    },
+    {
+      "name": "سلسيتو بسكوت مالح كراكرز",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/8hRqS8Xr.jpg",
+      "rotateClass": "rot-90",
+      "description": "كراكرز مالح خفيف ومقرمش من سلفيتو"
+    },
+    {
+      "name": "توت توت ويفر بسكوت",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "lowStock": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/3wfPw4HB.jpg",
+      "description": "ويفر توت توت المقرمش والطري"
+    },
+    {
+      "name": "عجوة بالتمر",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/vDXMHKSX.jpg",
+      "description": "النكهات : عجوة اصابع - عجوة سمايل - عجوة راحة",
+      "flavors": ["عجوة اصابع", "عجوة سمايل", "عجوة راحة"]
+    },
+    {
+      "name": "توت توت اكياس بسكوت والعاب",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/1czj9UhD8.jpg",
+      "description": "أكياس بسكويت توت توت المحبوبة مع ألعاب ومفاجآت"
+    },
+    {
+      "name": "كوكو موندو",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/gLGfB9JW/Screenshot-2026-09-25-14-05-21-203-com-miui-gallery.jpg",
+      "rotateClass": "rot-270",
+      "description": "بسكويت كوكو موندو غني بالطعم اللذيذ"
+    },
+    {
+      "name": "كروسان برشا",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://i.ibb.co/23CPVBGR/images-36.jpg",
+      "description": "كروسان برشا طري ومحشو بالشوكولا الغنية"
+    },
+    {
+      "name": "كرات الشوكالا",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/ZztZ5XMV/IMG-20260926-164651.jpg",
+      "description": "كرات الشوكولاتة المقرمشة المحشوة بالكريمة الغنية"
+    },
+    {
+      "name": "ارغو شوكالا",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/PGGmjkVG/IMG-20260928-133324.jpg",
+      "description": "بسكويت أرغو المغطى بشوكولاتة الحليب الغنية"
+    },
+    {
+      "name": "بسكوت شوكو ليغهيت",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "lowStock": true,
+      "image": "https://i.ibb.co/fV25TKQb/IMG-20260926-184507.jpg",
+      "description": "بسكويت خفيف ومقرمش بنكهة الشوكولاتة اللذيذة"
+    },
+    {
+      "name": "Show اصابع شوكالا",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/4ZFhgd1C/IMG-20260928-184917.jpg",
+      "description": "أصابع شوكولاتة شو الفاخرة المحشوة بالكريمة"
+    },
+    {
+      "name": "جادو اصابع شوكالا",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/1fQyZt6x/IMG-20260926-184750.jpg",
+      "description": "أصابع شوكولاتة جادو الشهية والغنية بطعم الكاكاو"
+    },
+    {
+      "name": "بيتي فور",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://i.ibb.co/rKjWFWnn/IMG-20260922-172909.jpg",
+      "description": "تشكيلة بيتي فور فاخرة ومقرمشة للضيافة"
+    },
+    {
+      "name": "بسكويت فور يو",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://i.ibb.co/xqw4NVw9/IMG-20260928-122756.jpg",
+      "description": "بسكويت فور يو الفاخر خيارك المفضل مع القهوة"
+    },
+    {
+      "name": "شيف كيك",
+      "category": "بسكويت",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "lowStock": true,
+      "image": "https://i.ibb.co/cKnwS42h/IMG-20260928-133219.jpg",
+      "description": "النكهات : حليب وشوكالا",
+      "flavors": ["حليب", "شوكالا"]
+    },
+    {
+      "name": "فيرتيكا كافية شوكالا",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.supaimg.com/bf889966-14fa-434d-a73a-0e1112e517ba/40fdd0c4-02d8-4f56-a64e-5507656bc4cf.jpg",
+      "description": "النكهات : البندق - شوكالا ساخنه",
+      "flavors": ["البندق", "شوكالا ساخنه"]
+    },
+    {
+      "name": "فيرتيكا قهوة",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/SXWTSbRX/17903727102627557644378252862299.jpg",
+      "description": "قهوة فيرتيكا سريعة التحضير غنية بالنكهة والمذاق الأصيل"
+    },
+    {
+      "name": "بن الحموي غلوة",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/15wi7WbUd.jpg",
+      "description": "النكهات : ازرق - اصفر - اخضر - احمر",
+      "flavors": ["ازرق", "اصفر", "اخضر", "احمر"]
+    },
+    {
+      "name": "سيتي كافية كابتشينو 3-1",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/47R6LSNN.jpg",
+      "description": "ظروف كابتشينو سيتي كافيه الرغوية السريعة"
+    },
+    {
+      "name": "سيتي كافية سريعه",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/PduMcSIL.jpg",
+      "description": "قهوة سريعة الذوبان ذات نكهة قوية وقاطعة"
+    },
+    {
+      "name": "سيتي كافية قهوة كريمي",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/19LpobZMk.jpg",
+      "description": "قهوة كريمية ممتازة ومخفوقة بطعم ناعم"
+    },
+    {
+      "name": "سيتي كافية قهوة كريمي سكر 3-1",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/pDfeQ4s9.jpg",
+      "description": "قهوة سيتي كافيه الكريمية المتكاملة مع السكر جاهزة"
+    },
+    {
+      "name": "قهوة سريعه بالهال الطبيعي",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/v5tsOer9.jpg",
+      "description": "قهوة سريعة التحضير ممزوجة بنكهة الهيل الطبيعي"
+    },
+    {
+      "name": "بن الحموي قهوه اكسترا هال 100g",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/18GOqOAv1.jpg",
+      "description": "بن الحموي الفاخر مع نسبة هيل مضاعفة وزن 100 غرام"
+    },
+    {
+      "name": "سيتي كافية 2-1 قهوه كريمي بدون سكر",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/DflkPmmo.jpg",
+      "description": "سيتي كافيه 2 في 1 بدون سكر"
+    },
+    {
+      "name": "سيتي شوكالا شراب الشوكالا",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/jZprrtND.jpg",
+      "description": "شراب شوكولاتة غني ولذيذ"
+    },
+    {
+      "name": "سيتي كافيه غولد",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/Wm6tKueS.jpg",
+      "description": "قهوة سيتي كافيه غولد الفاخرة"
+    },
+    {
+      "name": "سيتي كافية باردة أورجينال",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/Pvsw59HV/17905881015137144588691901690419.jpg",
+      "description": "مشروب سيتي كافيه القهوة الباردة أورجينال المباشر والمنعش"
+    },
+    {
+      "name": "سيتي كافية باردة موكا",
+      "category": "قهوة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/fwRN44d/17905881539073259721267290530679.jpg",
+      "description": "مشروب القهوة الباردة بنكهة الموكا اللذيذة من سيتي كافيه"
+    },
+    {
+      "name": "علكة ليمون كرات",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/qNiq1nDC.jpg",
+      "description": "النكهات : فريز - ليمون - برتقال - تفاح",
+      "flavors": ["فريز", "ليمون", "برتقال", "تفاح"]
+    },
+    {
+      "name": "ليكي ريكو مكس شريطه",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/18WZ0qFWP.jpg",
+      "rotateClass": "rot-180",
+      "description": "نصف متر"
+    },
+    {
+      "name": "شريطة جيجي مكس",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/6u3RFf7y.jpg",
+      "rotateClass": "rot-90",
+      "description": "شريطة جيلي مشكلة بنكهات منعشة"
+    },
+    {
+      "name": "اسكا البكتين",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/1aZA0Hw2J.jpg",
+      "description": "سكاكر بكتين طبيعية وصحية بمذاق الفواكه"
+    },
+    {
+      "name": "سميري سكاكر",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/181LBUdQ8.jpg",
+      "description": "تشكيلة سكاكر سميري الممتازة"
+    },
+    {
+      "name": "زاهي سكاكر",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/JtadpQ2B.jpg",
+      "description": "النكهات : كرز - برتقال - سوس - ليمون - اورجينال",
+      "flavors": ["كرز", "برتقال", "سوس", "ليمون", "اورجينال"]
+    },
+    {
+      "name": "مصاص",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/3TWLLj3S.jpg",
+      "description": "مصاص نكهات فواكه متنوعة"
+    },
+    {
+      "name": "علكة نغومة",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/NUIV1LwD.jpg",
+      "description": "علكة نغومة مميزة وشهية"
+    },
+    {
+      "name": "كلاسيس",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/2rZqt1V3.jpg",
+      "description": "سكاكر كلاسيس الفاخرة"
+    },
+    {
+      "name": "بات بوي علكة 500",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/o8oKZJYm.jpg",
+      "description": "علكة بات بوي"
+    },
+    {
+      "name": "علكة الاكرمي",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/Xzqy9WIa.jpg",
+      "description": "علكة الأكرمي المنعشة"
+    },
+    {
+      "name": "علكة مانكو",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/0DEWHvRp.jpg",
+      "description": "علكة مانكو بنكهات طازجة"
+    },
+    {
+      "name": "سكاكر بورسيشن",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/h2DGQJv0.jpg",
+      "description": "سكاكر بورسيشن الفريدة"
+    },
+    {
+      "name": "ميسون علكة",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/3W1u4pl9.jpg",
+      "description": "علكة ميسون الشهيرة"
+    },
+    {
+      "name": "علكة شيفتو",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/gbvi5caz.jpg",
+      "description": "علكة شيفتو الممتازة"
+    },
+    {
+      "name": "سمارة علكة",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/cpddVUTs.jpg",
+      "description": "علكة سمارة"
+    },
+    {
+      "name": "بيض داخلها العاب",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/VYmrhySQ/IMG-20260926-164613.jpg",
+      "description": "بيض مفاجآت ممتع للأطفال يحتوي على سكاكر وألعاب مميزة"
+    },
+    {
+      "name": "لعبه تلفون",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://i.ibb.co/xy29Wkm/IMG-20260926-164601.jpg",
+      "description": "لعبة تلفون مسلية للأطفال مع سكاكر حلوة ولذيذة"
+    },
+    {
+      "name": "سيارة وعلكة",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://i.ibb.co/3yWHJqks/IMG-20260926-164547.jpg",
+      "description": "لعبة سيارة ممتعة مع علكة طيبة ومحبوبة للأطفال"
+    },
+    {
+      "name": "العاب عيون",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/nMx3hSQn/IMG-20260928-124707.jpg",
+      "description": "لعبة عيون مسلية للأطفال مع حلوى وسكاكر طازجة"
+    },
+    {
+      "name": "رول اب علكة متر",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/SDbXdWbT/IMG-20260930-145107.jpg",
+      "description": "علكة رول اب شريط بطول متر ممتعة ومنعشة للأطفال"
+    },
+    {
+      "name": "ببرونه جيلي",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/MkWcx0q4/IMG-20260930-145130.jpg",
+      "description": "حلوى جيلي مسلية على شكل ببرونة بطعم الفواكه الشهية"
+    },
+    {
+      "name": "تلفون لعبه",
+      "category": "سكاكر وعلكة",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/DHc56gLy/IMG-20260930-145802.jpg",
+      "description": "لعبة تلفون ممتعة ومسلية للأطفال تحتوي على سكاكر"
+    },
+    {
+      "name": "شراب الكاكو",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/18eRJWhq5.jpg",
+      "rotateClass": "rot-90",
+      "description": "مشروب كاكاو غني ولذيذ للتقديم البارد أو الساخن"
+    },
+    {
+      "name": "وينر عصير ظروف",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/rffC64T5/1790372888210222678566786498719.jpg",
+      "description": "النكهات : توت - اناناس - فيمتو - مانجو - ليمون - برتقال",
+      "flavors": ["توت", "اناناس", "فيمتو", "مانجو", "ليمون", "برتقال"]
+    },
+    {
+      "name": "ياهلا عصير ظروف",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/tpCFhwYK/17903731735848470869604031728209.jpg",
+      "description": "النكهات : برتقال - اناناس - مانجو - توت - تمر هندي - تفاح - فريز - الهاواي - دراقن - مشمش - برتقال وجزر",
+      "flavors": ["برتقال", "اناناس", "مانجو", "توت", "تمر هندي", "تفاح", "فريز", "الهاواي", "دراقن", "مشمش", "برتقال وجزر"]
+    },
+    {
+      "name": "فيرتيكا عصير ظروف",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/cSSq548F/17903729980237394353446570947858.jpg",
+      "description": "النكهات : برتقال - برتقال ودراق - جلاب - ورد الجوري - فريز - توت - فيمتو - برتقال وليمون - فواكة - برتقال وجزر",
+      "flavors": ["برتقال", "برتقال ودراق", "جلاب", "ورد الجوري", "فريز", "توت", "فيمتو", "برتقال وليمون", "فواكة", "برتقال وجزر"]
+    },
+    {
+      "name": "لجين حليب",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/ffPIHygJ.jpg",
+      "description": "حليب وفريز"
+    },
+    {
+      "name": "تويتي حليب",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/4soMfmED.jpg",
+      "description": "حليب تويتي المغذي"
+    },
+    {
+      "name": "سولو عصير",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": false,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/69w6ahLa.jpg",
+      "description": "برتقال وفريز توت"
+    },
+    {
+      "name": "كولا مشروب غازي",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://cdn.imagetourls.com/uploads/tyImg/11JBRDiVw.jpg",
+      "description": "ساده - برتقال - جلاب - كولا"
+    },
+    {
+      "name": "كاكاو الفائز",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/3yhkwSjL/IMG-20260928-124537.jpg",
+      "description": "مشروب كاكاو الفائز الغني واللذيذ للتحضير السريع"
+    },
+    {
+      "name": "عصير جيلي رماز",
+      "category": "عصائر ومشروبات",
+      "price": "التواصل مع المبيعات",
+      "available": true,
+      "image": "https://i.ibb.co/mVfkL7rG/IMG-20260928-124421.jpg",
+      "description": "عصير جيلي رماز المنعش بمختلف طعمات الفواكه"
     }
-    persist();
-  });
-});
-
-/* ============================ عرض المنتجات ============================ */
-function getFilteredProducts() {
-  const q = (document.getElementById('adminSearch').value || '').trim().toLowerCase();
-  const cat = document.getElementById('adminFilterCat').value;
-  const status = document.getElementById('adminFilterStatus').value;
-
-  return catalogData.products.filter(p => {
-    if (cat && p.category !== cat) return false;
-    if (status === 'available' && (p.available === false || p.lowStock)) return false;
-    if (status === 'lowStock' && !p.lowStock) return false;
-    if (status === 'unavailable' && p.available !== false) return false;
-    if (q) {
-      const hay = (p.name + ' ' + (p.description || '') + ' ' + (p.category || '')).toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+  ],
+  "settings": {
+    "storeName": "مركز عاشور للتجارة",
+    "logoUrl": "https://cdn.phototourl.com/free/2026-09-21-ca2f4731-bf40-43ca-b6c3-c3b47ad9603d.jpg",
+    "orderWhatsApp": "963982572810",
+    "inquiryWhatsApp": "963959248901",
+    "address": "دمشق أوتوستراد درعا الدولي - قبل التاون سنتر مقابل جامع عائشة",
+    "mapUrl": "https://maps.app.goo.gl/djUWNAnBhh3pPwfn6",
+    "password": "ashour2026"
+  },
+  "categories": ["بسكويت", "شيبس", "سكاكر وعلكة", "عصائر ومشروبات", "قهوة"]
 }
-
-function renderProductList() {
-  const list = document.getElementById('productList');
-  const empty = document.getElementById('emptyState');
-  const items = getFilteredProducts();
-
-  if (items.length === 0) {
-    list.innerHTML = '';
-    empty.classList.remove('hidden');
-    return;
-  }
-  empty.classList.add('hidden');
-
-  list.innerHTML = items.map(p => {
-    const pid = catalogData.products.indexOf(p);
-    const isAvail = p.available !== false;
-    const isLow = p.lowStock === true && isAvail;
-
-    let badge = '';
-    if (!isAvail) badge = '<span class="bg-rose-600 text-white text-xs px-2.5 py-1 rounded-full font-black"><i class="fas fa-times-circle"></i> غير متوفر</span>';
-    else if (isLow) badge = '<span class="bg-amber-500 text-slate-950 text-xs px-2.5 py-1 rounded-full font-black"><i class="fas fa-exclamation-circle"></i> كمية محدودة</span>';
-    else badge = '<span class="bg-emerald-500 text-slate-950 text-xs px-2.5 py-1 rounded-full font-black"><i class="fas fa-check-circle"></i> متوفر</span>';
-
-    const flavorsBadge = (p.flavors && p.flavors.length)
-      ? `<span class="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md"><i class="fas fa-tags"></i> ${p.flavors.length} نكهة</span>`
-      : `<span class="text-xs text-slate-500 bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-md">بدون نكهات</span>`;
-
-    return `
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-amber-500/50 transition">
-        <div class="aspect-[740/645] bg-slate-950 relative overflow-hidden">
-          <img src="${escapeHtml(p.image || '')}" alt="${escapeHtml(p.name)}" loading="lazy"
-            class="w-full h-full object-cover ${escapeHtml(p.rotateClass || '')}"
-            onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'flex items-center justify-center h-full text-slate-600\\'><i class=\\'fas fa-image text-4xl\\'></i></div>'">
-          <div class="absolute top-2 right-2">${badge}</div>
-        </div>
-        <div class="p-3">
-          <div class="flex items-start justify-between gap-2 mb-2">
-            <h3 class="text-white font-black text-sm leading-snug flex-grow">${escapeHtml(p.name)}</h3>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap mb-3">
-            <span class="text-xs text-amber-400/80 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">${escapeHtml(p.category || 'بدون فئة')}</span>
-            ${flavorsBadge}
-          </div>
-          <button onclick="openProductModal(${pid})" class="w-full bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 font-bold py-2 rounded-xl text-sm transition flex items-center justify-center gap-2">
-            <i class="fas fa-edit"></i> تعديل
-          </button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function renderStats() {
-  const all = catalogData.products;
-  document.getElementById('statTotal').innerText = all.length;
-  document.getElementById('statAvailable').innerText = all.filter(p => p.available !== false && !p.lowStock).length;
-  document.getElementById('statLow').innerText = all.filter(p => p.lowStock && p.available !== false).length;
-  document.getElementById('statUnavailable').innerText = all.filter(p => p.available === false).length;
-}
-
-/* ============================ نافذة المنتج ============================ */
-function openProductModal(pid = null) {
-  const modal = document.getElementById('productModal');
-  editingFlavors = [];
-
-  if (pid === null) {
-    document.getElementById('modalTitle').innerText = 'إضافة منتج جديد';
-    document.getElementById('fPid').value = '';
-    document.getElementById('fName').value = '';
-    document.getElementById('fCategory').value = '';
-    document.getElementById('fPrice').value = 'التواصل مع المبيعات';
-    document.getElementById('fImage').value = '';
-    document.getElementById('fDescription').value = '';
-    document.getElementById('fAvailable').checked = true;
-    document.getElementById('fLowStock').checked = false;
-    setRotation('');
-  } else {
-    const p = catalogData.products[pid];
-    if (!p) return;
-    document.getElementById('modalTitle').innerText = 'تعديل: ' + p.name;
-    document.getElementById('fPid').value = pid;
-    document.getElementById('fName').value = p.name || '';
-    document.getElementById('fCategory').value = p.category || '';
-    document.getElementById('fPrice').value = p.price || 'التواصل مع المبيعات';
-    document.getElementById('fImage').value = p.image || '';
-    document.getElementById('fDescription').value = p.description || '';
-    document.getElementById('fAvailable').checked = p.available !== false;
-    document.getElementById('fLowStock').checked = p.lowStock === true;
-    editingFlavors = Array.isArray(p.flavors) ? [...p.flavors] : [];
-    setRotation(p.rotateClass || '');
-  }
-
-  renderFlavors();
-  previewImage();
-  modal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeProductModal() {
-  document.getElementById('productModal').classList.add('hidden');
-  document.body.style.overflow = '';
-}
-
-function previewImage() {
-  const url = document.getElementById('fImage').value.trim();
-  const img = document.getElementById('fImagePreview');
-  if (url) {
-    img.src = url;
-    img.style.display = 'block';
-  } else {
-    img.style.display = 'none';
-  }
-}
-
-function setRotation(rot) {
-  currentRotation = rot || '';
-  document.querySelectorAll('.rot-btn').forEach(b => {
-    const active = (b.dataset.rot || '') === currentRotation;
-    b.className = 'rot-btn ' + (active
-      ? 'bg-amber-500 text-slate-950 font-black border border-amber-400'
-      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700') + ' px-3 py-1.5 rounded-lg text-xs';
-  });
-}
-
-/* ============================ النكهات ============================ */
-function renderFlavors() {
-  const c = document.getElementById('flavorsContainer');
-  if (editingFlavors.length === 0) {
-    c.innerHTML = '<span class="text-slate-500 text-xs py-1">لا توجد نكهات — المنتج سيُعامل كـ "عادي"</span>';
-    return;
-  }
-  c.innerHTML = editingFlavors.map((f, i) => `
-    <span class="flavor-tag bg-amber-500/15 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-full text-xs font-bold">
-      ${escapeHtml(f)}
-      <button type="button" onclick="removeFlavor(${i})" class="w-4 h-4 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-[10px]">
-        <i class="fas fa-times"></i>
-      </button>
-    </span>`).join('');
-}
-
-function addFlavor() {
-  const input = document.getElementById('newFlavorInput');
-  const v = input.value.trim();
-  if (!v) return;
-  if (editingFlavors.includes(v)) {
-    showToast('النكهة موجودة مسبقًا', 'error');
-    return;
-  }
-  editingFlavors.push(v);
-  input.value = '';
-  renderFlavors();
-  input.focus();
-}
-
-function removeFlavor(i) {
-  editingFlavors.splice(i, 1);
-  renderFlavors();
-}
-
-/* ============================ حفظ/حذف منتج ============================ */
-function saveProduct() {
-  const name = document.getElementById('fName').value.trim();
-  const category = document.getElementById('fCategory').value.trim();
-  const image = document.getElementById('fImage').value.trim();
-
-  if (!name) { showToast('اسم المنتج مطلوب', 'error'); return; }
-  if (!category) { showToast('الفئة مطلوبة', 'error'); return; }
-  if (!image) { showToast('رابط الصورة مطلوب', 'error'); return; }
-
-  const data = {
-    name, category,
-    price: document.getElementById('fPrice').value.trim() || 'التواصل مع المبيعات',
-    image,
-    description: document.getElementById('fDescription').value.trim(),
-    available: document.getElementById('fAvailable').checked,
-    lowStock: document.getElementById('fLowStock').checked,
-    flavors: editingFlavors.length ? [...editingFlavors] : undefined,
-    rotateClass: currentRotation || undefined
-  };
-
-  // إزالة القيم undefined للحصول على JSON نظيف
-  Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
-
-  const pidVal = document.getElementById('fPid').value;
-  if (pidVal === '') {
-    catalogData.products.push(data);
-    showToast('تمت إضافة المنتج بنجاح');
-  } else {
-    const idx = Number(pidVal);
-    catalogData.products[idx] = data;
-    showToast('تم تحديث المنتج بنجاح');
-  }
-
-  persist();
-  renderCategories();
-  renderProductList();
-  renderStats();
-  closeProductModal();
-}
-
-function deleteProductFromModal() {
-  const pidVal = document.getElementById('fPid').value;
-  if (pidVal === '') { closeProductModal(); return; }
-  const idx = Number(pidVal);
-  const p = catalogData.products[idx];
-  if (!p) return;
-  if (!confirm(`هل تريد حذف "${p.name}"؟ لا يمكن التراجع.`)) return;
-  catalogData.products.splice(idx, 1);
-  persist();
-  renderProductList();
-  renderStats();
-  closeProductModal();
-  showToast('تم حذف المنتج');
-}
-
-/* ============================ حفظ شامل ============================ */
-function saveAll() {
-  persist();
-  clearDirty();
-  showToast('تم حفظ كل التغييرات في المتصفح');
-}
-
-/* ============================ تصدير/استيراد ============================ */
-function exportData() {
-  const clean = {
-    products: catalogData.products.map(p => {
-      const o = { ...p };
-      if (!o.flavors || o.flavors.length === 0) delete o.flavors;
-      return o;
-    }),
-    settings: { ...catalogData.settings },
-    categories: [...(catalogData.categories || [])]
-  };
-
-  const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'catalog-data.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('تم تنزيل الملف — ارفعه في GitHub');
-}
-
-function importData(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      applyImportedData(data);
-    } catch (err) {
-      showToast('ملف غير صالح', 'error');
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-}
-
-function applyImportedData(data) {
-  if (!data || typeof data !== 'object') { showToast('بيانات غير صالحة', 'error'); return; }
-  if (!confirm('سيتم استبدال جميع البيانات الحالية. متابعة؟')) return;
-
-  catalogData = {
-    products: Array.isArray(data.products) ? data.products : [],
-    settings: data.settings && typeof data.settings === 'object'
-      ? { ...catalogData.settings, ...data.settings }
-      : catalogData.settings,
-    categories: Array.isArray(data.categories) ? data.categories : []
-  };
-  persist();
-  renderCategories();
-  renderSettingsInputs();
-  renderProductList();
-  renderStats();
-  showToast('تم استيراد البيانات بنجاح');
-}
-
-/* ============================ JSON نصي ============================ */
-function copyJsonToTextarea() {
-  document.getElementById('jsonTextarea').value = JSON.stringify(catalogData, null, 2);
-  showToast('تم تحميل البيانات في الصندوق');
-}
-
-function applyJsonFromTextarea() {
-  const txt = document.getElementById('jsonTextarea').value.trim();
-  if (!txt) { showToast('الصندوق فارغ', 'error'); return; }
-  try {
-    const data = JSON.parse(txt);
-    applyImportedData(data);
-  } catch (err) {
-    showToast('JSON غير صالح', 'error');
-  }
-}
-
-/* ============================ إغلاق بزر Escape ============================ */
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeProductModal();
-});
-
-/* ============================ الإقلاع ============================ */
-(async function boot() {
-  await loadInitialData();
-  // إن كانت الجلسة مسجّلة من قبل، افتح مباشرة
-  if (sessionStorage.getItem('ashour_admin_ok') === '1') {
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('adminApp').classList.remove('hidden');
-    initAdmin();
-  }
-})();
-</script>
-</body>
-</html>
